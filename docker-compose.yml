@@ -5,4 +5,4 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    image: docker-geobase/latest
+    image: docker-ubuntu-geobase/latest

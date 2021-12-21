@@ -64,3 +64,5 @@ RUN pip3.9 install numpy \
 
 COPY requirements.txt .
 RUN pip3.9 install --no-cache-dir -r requirements.txt
+
+LABEL org.opencontainers.image.source=https://github.com/debsahu/docker-ubuntu-geobase
