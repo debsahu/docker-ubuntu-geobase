@@ -22,6 +22,8 @@ $ docker pull ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster
 
 ## Usage
 
+- Check the testing folder
+
 ```
 FROM ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster as builder
 
@@ -40,7 +42,7 @@ FROM python:3.9-slim-buster as final
 # Install some required runtime libraries from apt
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-        libfreexl1 libxml2 \
+        libfreexl1 libxml2 libpng16-16 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the previously-built shared libaries from the builder image
