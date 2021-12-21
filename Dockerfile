@@ -11,9 +11,10 @@ RUN apt-get update \
     curl libcurl4-openssl-dev lbzip2 libopenjp2-7-dev libzstd-dev libdeflate-dev libjpeg-turbo-progs \
     sqlite3 libtiff-dev nghttp2 libgeotiff-dev proj-bin cmake wget ca-certificates \
     unzip pkg-config libfreexl-dev libxml2-dev nasm libpng-dev libgeos-dev \
-    libtool automake sqlite3 libtiff5-dev libjpeg8-dev libjpeg-turbo8-dev
-RUN apt-get update \
-    && apt-get remove -y python3 python3.8 libpython3-stdlib libpython3.8-minimal libpython3.8-stdlib python3-minimal python3.8-minimal
+    libtool automake sqlite3 libtiff5-dev libjpeg8-dev libjpeg-turbo8-dev \
+    && apt-get remove -y \
+    python3 python3.8 libpython3-stdlib libpython3.8-minimal libpython3.8-stdlib python3-minimal python3.8-minimal \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV CPUS 4
 WORKDIR /tmp
