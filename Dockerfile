@@ -145,4 +145,5 @@ RUN ldconfig
 # https://proj.org/usage/environmentvars.html#envvar-PROJ_NETWORK
 ENV PROJ_NETWORK ON
 
-LABEL org.opencontainers.image.source=https://github.com/debsahu/docker-ubuntu-geobase#3.9-slim-buster
+LABEL org.opencontainers.image.source=https://github.com/debsahu/docker-ubuntu-geobase/tree/3.9-slim-buster
+LABEL org.opencontainers.image.version=3.9-slim-buster
