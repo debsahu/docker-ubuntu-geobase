@@ -1,28 +1,3 @@
-# docker-ubuntu-geobase
-
-To use this image, include this line in your Dockerfile:
-
-```
-FROM ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster
-```
-
-or
-
-Docker:
-
-```
-$ docker pull ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster
-```
-
-## Features
-
-- Based on 3.9-slim-buster
-- Python 3.9.x
-- GDAL 3.4.0
-
-## Usage
-
-```
 FROM ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster as builder
 
 # Python dependencies that require compilation
@@ -46,4 +21,3 @@ RUN apt-get update \
 # Install the previously-built shared libaries from the builder image
 COPY --from=builder /usr/local /usr/local
 RUN ldconfig
-```
