@@ -7,7 +7,9 @@ name: Create and publish a Docker image
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - 3.9-slim-buster
 
 env:
   REGISTRY: ghcr.io
