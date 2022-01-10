@@ -5,4 +5,4 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    image: docker-geobase/3.9-slim-buster
+    image: docker-geobase/ubuntu-gis

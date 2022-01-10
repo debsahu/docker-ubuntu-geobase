@@ -3,7 +3,7 @@
 To use this image, include this line in your Dockerfile:
 
 ```
-FROM ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster
+FROM ghcr.io/debsahu/docker-ubuntu-geobase:ubuntugis
 ```
 
 or
@@ -11,33 +11,35 @@ or
 Docker:
 
 ```
-$ docker pull ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster
+$ docker pull ghcr.io/debsahu/docker-ubuntu-geobase:ubuntugis
 ```
 
 ## Features
 
-- Based on 3.9-slim-buster
+- Based on ubuntu 20.04
 - Python 3.9.x
-- GDAL 3.4.0
+- GDAL 3.x.x
 
 ## Usage
 
 - Check the testing folder
 
 ```
-FROM ghcr.io/debsahu/docker-ubuntu-geobase:3.9-slim-buster as builder
+FROM ghcr.io/debsahu/docker-ubuntu-geobase:ubuntugis as builder
 
 # Python dependencies that require compilation
+COPY requirements.txt .
 ENV export CPLUS_INCLUDE_PATH /usr/include/gdal
 ENV export C_INCLUDE_PATH /usr/include/gdal
 RUN python -m pip install cython numpy -c requirements.txt \
-    && python -m pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal" \
-    && python -m pip install --no-binary --no-cache-dir fiona rasterio shapely opencv-python scipy scikit-image scikit-learn pandas matplotlib geopandas seaborn earthpy -r requirements.txt \
+    && python -m pip install GDAL==$(gdal-config --version) \
+    && python -m pip install --no-cache-dir fiona rasterio shapely opencv-python scipy scikit-image scikit-learn pandas matplotlib geopandas seaborn earthpy \
+    && python -m pip install --no-cache-dir -r requirements.txt \
     && pip uninstall cython --yes
 
 # ------ Second stage
 # Start from a clean image
-FROM python:3.9-slim-buster as final
+FROM ubuntu:20.04 as final
 
 # Install some required runtime libraries from apt
 RUN apt-get update \
