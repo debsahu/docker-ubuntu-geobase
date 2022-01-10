@@ -1,149 +1,38 @@
-FROM python:3.9-slim-buster as builder
+FROM ubuntu:20.04
 
+ENV TZ=America/Detroit
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    cmake build-essential wget ca-certificates unzip pkg-config \
-    zlib1g-dev libfreexl-dev libxml2-dev nasm libpng-dev openssl libssl-dev
+    && apt-get install -y software-properties-common wget build-essential \
+       checkinstall git \
+    && add-apt-repository ppa:ubuntugis/ppa \
+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 314DF160 \
+    && apt-get update \
+	&& apt-get remove -y python3 python3.8 libpython3-stdlib libpython3.8-minimal \
+	   libpython3.8-stdlib python3-minimal python3.8-minimal
 
-WORKDIR /tmp
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get install -y --no-install-recommends libreadline-gplv2-dev libffi-dev libncursesw5-dev \
+    libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libgdal-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV CPUS 4
+ENV PYTHON_VERSION 3.9.9
+RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz \
+    && tar xzf Python-${PYTHON_VERSION}.tgz \
+    && cd Python-${PYTHON_VERSION} \
+    && ./configure --enable-optimizations \
+    && make -j ${CPUS} \
+    && make altinstall \
+    && make install
 
-ENV WEBP_VERSION 1.2.1
-RUN wget -q https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz && \
-    tar xzf libwebp-${WEBP_VERSION}.tar.gz && \
-    cd libwebp-${WEBP_VERSION} && \
-    CFLAGS="-O2 -Wl,-S" ./configure --enable-silent-rules && \
-    echo "building WEBP ${WEBP_VERSION}..." \
-    make --quiet -j${CPUS} && make --quiet install
+RUN pip3.9 install numpy \
+    && pip3.9 install GDAL==$(gdal-config --version) \
+    && pip3.9 install --no-cache-dir fiona rasterio shapely opencv-python scipy scikit-image \
+       scikit-learn pandas matplotlib geopandas seaborn earthpy
 
-ENV ZSTD_VERSION 1.4.4
-RUN wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz \
-    && tar -zxf zstd-${ZSTD_VERSION}.tar.gz \
-    && cd zstd-${ZSTD_VERSION} \
-    && echo "building ZSTD ${ZSTD_VERSION}..." \
-    && make --quiet -j${CPUS} ZSTD_LEGACY_SUPPORT=0 CFLAGS=-O1 \
-    && make --quiet install ZSTD_LEGACY_SUPPORT=0 CFLAGS=-O1
+COPY requirements.txt .
+RUN pip3.9 install --no-cache-dir -r requirements.txt
 
-ENV LIBDEFLATE_VERSION 1.8
-RUN wget -q https://github.com/ebiggers/libdeflate/archive/v${LIBDEFLATE_VERSION}.tar.gz \
-    && tar -zxf v${LIBDEFLATE_VERSION}.tar.gz \
-    && cd libdeflate-${LIBDEFLATE_VERSION} \
-    && echo "building libdeflate ${LIBDEFLATE_VERSION}..." \
-    && make -j${CPUS} \
-    && make --quiet install
-
-ENV LIBJPEG_TURBO_VERSION 2.1.2
-RUN wget -q https://github.com/libjpeg-turbo/libjpeg-turbo/archive/${LIBJPEG_TURBO_VERSION}.tar.gz \
-    && tar -zxf ${LIBJPEG_TURBO_VERSION}.tar.gz \
-    && cd libjpeg-turbo-${LIBJPEG_TURBO_VERSION} \
-    && echo "building libjpeg-turbo ${LIBJPEG_TURBO_VERSION}..." \
-    && cmake -G"Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release . \
-    && make -j${CPUS} \
-    && make --quiet install
-
-ENV GEOS_VERSION 3.9.2
-RUN wget -q https://download.osgeo.org/geos/geos-${GEOS_VERSION}.tar.bz2 \
-    && tar -xjf geos-${GEOS_VERSION}.tar.bz2  \
-    && cd geos-${GEOS_VERSION} \
-    && ./configure --prefix=/usr/local \
-    && echo "building geos ${GEOS_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV SQLITE_VERSION 3370000
-ENV SQLITE_YEAR 2021
-RUN wget -q https://sqlite.org/${SQLITE_YEAR}/sqlite-autoconf-${SQLITE_VERSION}.tar.gz \
-    && tar -xzf sqlite-autoconf-${SQLITE_VERSION}.tar.gz && cd sqlite-autoconf-${SQLITE_VERSION} \
-    && ./configure --prefix=/usr/local \
-    && echo "building SQLITE ${SQLITE_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV LIBTIFF_VERSION=4.3.0
-RUN wget -q https://download.osgeo.org/libtiff/tiff-${LIBTIFF_VERSION}.tar.gz \
-    && tar -xzf tiff-${LIBTIFF_VERSION}.tar.gz \
-    && cd tiff-${LIBTIFF_VERSION} \
-    && ./configure --prefix=/usr/local \
-    && echo "building libtiff ${LIBTIFF_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV NGHTTP2_VERSION 1.46.0
-RUN wget https://github.com/nghttp2/nghttp2/releases/download/v${NGHTTP2_VERSION}/nghttp2-${NGHTTP2_VERSION}.tar.gz \
-    && tar -xzf nghttp2-${NGHTTP2_VERSION}.tar.gz \
-    && cd nghttp2-${NGHTTP2_VERSION} \
-    && echo "building NGHTTP2 ${NGHTTP2_VERSION}..." \
-    && ./configure --enable-lib-only --prefix=/usr/local \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV CURL_VERSION 7.80.0
-RUN wget -q https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz \
-    && tar -xzf curl-${CURL_VERSION}.tar.gz && cd curl-${CURL_VERSION} \
-    && ./configure --with-openssl --with-wolfssl --prefix=/usr/local \
-    && echo "building CURL ${CURL_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV PROJ_VERSION 8.2.0
-RUN wget -q https://download.osgeo.org/proj/proj-${PROJ_VERSION}.tar.gz \
-    && tar -xzf proj-${PROJ_VERSION}.tar.gz \
-    && cd proj-${PROJ_VERSION} \
-    && ./configure --prefix=/usr/local \
-    && echo "building proj ${PROJ_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV LIBGEOTIFF_VERSION=1.7.0
-RUN wget -q https://github.com/OSGeo/libgeotiff/releases/download/${LIBGEOTIFF_VERSION}/libgeotiff-${LIBGEOTIFF_VERSION}.tar.gz \
-    && tar -xzf libgeotiff-${LIBGEOTIFF_VERSION}.tar.gz \
-    && cd libgeotiff-${LIBGEOTIFF_VERSION} \
-    && ./configure --prefix=/usr/local --with-zlib \
-    && echo "building libgeotiff ${LIBGEOTIFF_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-# ENV SPATIALITE_VERSION 5.0.0
-# RUN wget -q https://www.gaia-gis.it/gaia-sins/libspatialite-${SPATIALITE_VERSION}.tar.gz
-# RUN apt-get install -y libminizip-dev
-# RUN tar -xzvf libspatialite-${SPATIALITE_VERSION}.tar.gz && cd libspatialite-${SPATIALITE_VERSION} \
-#     && ./configure --prefix=/usr/local \
-#     && echo "building SPATIALITE ${SPATIALITE_VERSION}..." \
-#     && make --quiet -j${CPUS} && make --quiet install
-
-ENV OPENJPEG_VERSION 2.4.0
-RUN wget -q -O openjpeg-${OPENJPEG_VERSION}.tar.gz https://github.com/uclouvain/openjpeg/archive/v${OPENJPEG_VERSION}.tar.gz \
-    && tar -zxf openjpeg-${OPENJPEG_VERSION}.tar.gz \
-    && cd openjpeg-${OPENJPEG_VERSION} \
-    && mkdir build && cd build \
-    && cmake .. -DBUILD_THIRDPARTY:BOOL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
-    && echo "building openjpeg ${OPENJPEG_VERSION}..." \
-    && make --quiet -j${CPUS} && make --quiet install
-
-ENV GDAL_SHORT_VERSION 3.4.0
-ENV GDAL_VERSION 3.4.0
-RUN wget -q https://download.osgeo.org/gdal/${GDAL_SHORT_VERSION}/gdal-${GDAL_VERSION}.tar.gz
-RUN tar -xzf gdal-${GDAL_VERSION}.tar.gz && cd gdal-${GDAL_SHORT_VERSION} && \
-    ./configure \
-    --disable-debug \
-    --prefix=/usr/local \
-    --disable-static \
-    --with-curl=/usr/local/bin/curl-config \
-    --with-geos \
-    --with-geotiff=/usr/local \
-    --with-hide-internal-symbols=yes \
-    --with-libtiff=/usr/local \
-    --with-jpeg=/usr/local \
-    --with-png \
-    --with-openjpeg \
-    --with-sqlite3 \
-    --with-proj=/usr/local \
-    --with-rename-internal-libgeotiff-symbols=yes \
-    --with-rename-internal-libtiff-symbols=yes \
-    --with-threads=yes \
-    --with-webp=/usr/local \
-    --with-zstd=/usr/local \
-    --with-libdeflate \
-    && echo "building GDAL ${GDAL_VERSION}..." \
-    && make -j${CPUS} && make --quiet install
-
-RUN ldconfig
-
-# https://proj.org/usage/environmentvars.html#envvar-PROJ_NETWORK
-ENV PROJ_NETWORK ON
-
-LABEL org.opencontainers.image.source=https://github.com/debsahu/docker-ubuntu-geobase/tree/3.9-slim-buster
-LABEL org.opencontainers.image.version=3.9-slim-buster
+LABEL org.opencontainers.image.source=https://github.com/debsahu/docker-ubuntu-geobase/tree/ubuntugis
+LABEL org.opencontainers.image.version=ubuntugis
